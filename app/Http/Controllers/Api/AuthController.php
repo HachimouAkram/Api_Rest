@@ -19,7 +19,8 @@ class AuthController extends Controller
             $validator = Validator::make($request->all(), [
                 'name' => 'required|string|max:255',
                 'email' => 'required|string|email|max:255|unique:users',
-                'password' => 'required|string|min:6'
+                'password' => 'required|string|min:6',
+                'role' => 'sometimes|in:client,partenaire,admin'
             ]);
 
             if ($validator->fails()) {
@@ -33,7 +34,8 @@ class AuthController extends Controller
             $user = User::create([
                 'name' => $request->name,
                 'email' => $request->email,
-                'password' => bcrypt($request->password)
+                'password' => bcrypt($request->password),
+                'role' => $request->role ?? 'client'
             ]);
 
             $token = $user->createToken('api_token')->plainTextToken;
@@ -95,5 +97,16 @@ class AuthController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Récupération du profil utilisateur
+     */
+    public function me(Request $request)
+    {
+        return response()->json([
+            'success' => true,
+            'user' => $request->user()
+        ], 200);
     }
 }
