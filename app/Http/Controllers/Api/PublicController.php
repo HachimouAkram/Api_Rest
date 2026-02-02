@@ -5,35 +5,128 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Listing;
 use App\Models\Page;
+use App\Models\Review;
 use App\Models\SpecialOffer;
 use Illuminate\Http\Request;
 
 class PublicController extends Controller
 {
     /**
-     * Recherche filtrée d'annonces
+     * Liste de toutes les annonces (listings) actives
      */
-    public function search(Request $request)
+    public function listings(Request $request)
     {
         $query = Listing::with(['photos', 'user'])
-            ->where('is_active', true);
+            ->where('is_active', true)
+            ->where('is_approved', true);
 
-        // Filtrage par ville
-        if ($request->city) {
+        // Filtre par ville
+        if ($request->filled('city')) {
             $query->where('city', 'like', '%' . $request->city . '%');
         }
 
-        // Filtrage par prix
-        if ($request->min_price) {
-            $query->where('price_per_night', '>=', $request->min_price);
-        }
-        if ($request->max_price) {
-            $query->where('price_per_night', '<=', $request->max_price);
+        // Filtre par pays
+        if ($request->filled('country')) {
+            $query->where('country', 'like', '%' . $request->country . '%');
         }
 
-        // Filtrage par nombre de voyageurs
-        if ($request->guests) {
-            $query->where('max_guests', '>=', $request->guests);
+        // Filtre par prix
+        if ($request->filled('min_price')) {
+            $query->where('price_per_night', '>=', (float) $request->min_price);
+        }
+        if ($request->filled('max_price')) {
+            $query->where('price_per_night', '<=', (float) $request->max_price);
+        }
+
+        // Filtre par capacité
+        if ($request->filled('guests')) {
+            $query->where('max_guests', '>=', (int) $request->guests);
+        }
+
+        $listings = $query->orderBy('created_at', 'desc')->paginate(12);
+
+        return response()->json([
+            'success' => true,
+            'data' => $listings
+        ]);
+    }
+
+    /**
+     * Détails d'une annonce spécifique
+     */
+    public function showListing($id)
+    {
+        $listing = Listing::with(['photos', 'availabilities', 'user'])
+            ->where('is_active', true)
+            ->where('is_approved', true)
+            ->find($id);
+
+        if (!$listing) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Annonce non trouvée'
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $listing
+        ]);
+    }
+
+    /**
+     * Liste des avis pour une annonce
+     */
+    public function reviews($listingId)
+    {
+        $reviews = Review::where('listing_id', $listingId)
+            ->with('user:id,name')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $reviews
+        ]);
+    }
+
+    /**
+     * Recherche filtrée d'annonces (listings)
+     * Paramètres: city, destination, location | min_price, max_price | guests, travelers, capacity | type
+     */
+    public function search(Request $request)
+    {
+        $query = Listing::with(['photos', 'availabilities', 'user'])
+            ->where('is_active', true)
+            ->where('is_approved', true);
+
+        $location = $request->input('city') ?: $request->input('destination') ?: $request->input('location');
+        if ($location) {
+            $query->where(function ($q) use ($location) {
+                $q->where('city', 'like', '%' . $location . '%')
+                    ->orWhere('country', 'like', '%' . $location . '%')
+                    ->orWhere('address', 'like', '%' . $location . '%');
+            });
+        }
+
+        $minPrice = $request->input('min_price') ?: $request->input('minPrice');
+        if ($minPrice) {
+            $query->where('price_per_night', '>=', (float) $minPrice);
+        }
+
+        $maxPrice = $request->input('max_price') ?: $request->input('maxPrice');
+        if ($maxPrice) {
+            $query->where('price_per_night', '<=', (float) $maxPrice);
+        }
+
+        $guests = $request->input('guests') ?: $request->input('travelers') ?: $request->input('capacity');
+        if ($guests) {
+            $query->where('max_guests', '>=', (int) $guests);
+        }
+
+        if ($request->filled('type')) {
+            // Listing n'a pas de champ type - on peut filtrer via une future colonne ou ignorer
+            // $query->where('type', $request->type);
         }
 
         $listings = $query->paginate(12);

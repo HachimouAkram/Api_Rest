@@ -24,8 +24,8 @@ class UserSeeder extends Seeder
 
         // Créer un partenaire
         User::create([
-            'name' => 'Partenaire Test',
-            'email' => 'partenaire@test.com',
+            'name' => 'Partner Test',
+            'email' => 'partner@test.com',
             'password' => Hash::make('password123'),
             'role' => 'partenaire'
         ]);

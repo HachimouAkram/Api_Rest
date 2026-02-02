@@ -21,8 +21,8 @@ return new class extends Migration
             $table->string('city');
             $table->string('country');
             $table->integer('max_guests');
-            $table->integer('bedrooms');
-            $table->integer('bathrooms');
+            $table->integer('bedrooms')->default(0);
+            $table->integer('bathrooms')->default(0);
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });

@@ -23,6 +23,7 @@ class PartnerController extends Controller
      */
     public function profile()
     {
+        /** @var \App\Models\User $user */
         $user = Auth::user();
         return response()->json([
             'success' => true,
@@ -35,6 +36,7 @@ class PartnerController extends Controller
      */
     public function updateProfile(Request $request)
     {
+        /** @var \App\Models\User $user */
         $user = Auth::user();
         
         $request->validate([
@@ -42,7 +44,13 @@ class PartnerController extends Controller
             'email' => 'sometimes|string|email|max:255|unique:users,email,' . $user->id,
         ]);
 
-        $user->update($request->only(['name', 'email']));
+        if ($request->has('name')) {
+            $user->name = $request->name;
+        }
+        if ($request->has('email')) {
+            $user->email = $request->email;
+        }
+        $user->save();
 
         return response()->json([
             'success' => true,
@@ -93,14 +101,22 @@ class PartnerController extends Controller
      */
     public function listings()
     {
-        $listings = Listing::where('user_id', Auth::id())
-            ->with(['photos', 'availabilities'])
-            ->get();
+        try {
+            $listings = Listing::where('user_id', Auth::id())
+                ->with(['photos', 'availabilities'])
+                ->get();
 
-        return response()->json([
-            'success' => true,
-            'data' => $listings
-        ]);
+            return response()->json([
+                'success' => true,
+                'data' => $listings
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la récupération des annonces',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
@@ -367,7 +383,7 @@ class PartnerController extends Controller
     {
         $bookings = Booking::whereHas('listing', function($query) {
             $query->where('user_id', Auth::id());
-        })->where('status', 'confirmed')
+        })->whereIn('status', ['confirmed', 'completed'])
         ->with('listing')
         ->get();
 
@@ -387,5 +403,84 @@ class PartnerController extends Controller
                 'recent_bookings' => $bookings->take(10)
             ]
         ]);
+    }
+
+    /**
+     * Statistiques du dashboard
+     */
+    public function dashboardStats()
+    {
+        try {
+            $userId = Auth::id();
+            
+            // Nombre total d'annonces
+            $totalListings = Listing::where('user_id', $userId)->count();
+            
+            // Nombre d'annonces actives
+            $activeListings = Listing::where('user_id', $userId)
+                ->where('is_active', true)
+                ->count();
+            
+            // Nombre total de réservations
+            $totalBookings = Booking::whereHas('listing', function($query) use ($userId) {
+                $query->where('user_id', $userId);
+            })->count();
+            
+            // Réservations en attente
+            $pendingBookings = Booking::whereHas('listing', function($query) use ($userId) {
+                $query->where('user_id', $userId);
+            })->where('status', 'pending')->count();
+            
+            // Réservations confirmées
+            $confirmedBookings = Booking::whereHas('listing', function($query) use ($userId) {
+                $query->where('user_id', $userId);
+            })->where('status', 'confirmed')->count();
+            
+            // Réservations terminées
+            $completedBookings = Booking::whereHas('listing', function($query) use ($userId) {
+                $query->where('user_id', $userId);
+            })->where('status', 'completed')->count();
+            
+            // Revenus totaux
+            $totalRevenue = Booking::whereHas('listing', function($query) use ($userId) {
+                $query->where('user_id', $userId);
+            })->whereIn('status', ['confirmed', 'completed'])
+            ->sum('total_price');
+            
+            // Revenus du mois en cours
+            $currentMonthRevenue = Booking::whereHas('listing', function($query) use ($userId) {
+                $query->where('user_id', $userId);
+            })->whereIn('status', ['confirmed', 'completed'])
+            ->whereMonth('created_at', now()->month)
+            ->whereYear('created_at', now()->year)
+            ->sum('total_price');
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'listings' => [
+                        'total' => $totalListings,
+                        'active' => $activeListings,
+                        'inactive' => $totalListings - $activeListings
+                    ],
+                    'bookings' => [
+                        'total' => $totalBookings,
+                        'pending' => $pendingBookings,
+                        'confirmed' => $confirmedBookings,
+                        'completed' => $completedBookings
+                    ],
+                    'revenue' => [
+                        'total' => (float) $totalRevenue,
+                        'current_month' => (float) $currentMonthRevenue
+                    ]
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la récupération des statistiques',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 }
