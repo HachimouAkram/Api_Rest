@@ -16,7 +16,7 @@ class PartnerController extends Controller
     public function __construct()
     {
         $this->middleware('auth:sanctum');
-        $this->middleware('role:partenaire,admin');
+        $this->middleware('role:partenaire');
     }
 
     /**
