@@ -13,8 +13,15 @@ class SpecialOfferSeeder extends Seeder
      */
     public function run(): void
     {
+        $listings = \App\Models\Listing::all();
+
+        if ($listings->isEmpty()) {
+            return;
+        }
+
         $offers = [
             [
+                'listing_id' => $listings[0]->id,
                 'title' => 'Offre été -20%',
                 'description' => 'Profitez de -20% sur toutes les réservations d\'été',
                 'discount_percentage' => 20.00,
@@ -23,6 +30,7 @@ class SpecialOfferSeeder extends Seeder
                 'is_active' => true
             ],
             [
+                'listing_id' => $listings[1]->id,
                 'title' => 'Week-end prolongé',
                 'description' => '3 nuits pour le prix de 2',
                 'discount_percentage' => 33.33,
@@ -31,6 +39,7 @@ class SpecialOfferSeeder extends Seeder
                 'is_active' => true
             ],
             [
+                'listing_id' => $listings[2]->id,
                 'title' => 'Séjour romantique',
                 'description' => 'Bouteille de champagne offerte',
                 'discount_percentage' => 10.00,

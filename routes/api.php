@@ -101,6 +101,10 @@ Route::prefix('partner')
     // Réservations & revenus
     Route::get('/bookings', [PartnerController::class, 'bookings']);
     Route::get('/revenues', [PartnerController::class, 'revenues']);
+
+    // Gestion des offres spéciales
+    Route::post('/listings/{id}/special-offers', [PartnerController::class, 'addSpecialOffer']);
+    Route::delete('/special-offers/{id}', [PartnerController::class, 'deleteSpecialOffer']);
 });
 
 

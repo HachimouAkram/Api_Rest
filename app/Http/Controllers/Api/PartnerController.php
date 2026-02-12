@@ -7,6 +7,7 @@ use App\Models\Listing;
 use App\Models\Photo;
 use App\Models\Availability;
 use App\Models\Booking;
+use App\Models\SpecialOffer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -23,7 +24,6 @@ class PartnerController extends Controller
      */
     public function profile()
     {
-        /** @var \App\Models\User $user */
         $user = Auth::user();
         return response()->json([
             'success' => true,
@@ -402,6 +402,71 @@ class PartnerController extends Controller
                 'booking_count' => $bookings->count(),
                 'recent_bookings' => $bookings->take(10)
             ]
+        ]);
+    }
+
+    /**
+     * Ajouter une offre spéciale à une annonce
+     */
+    public function addSpecialOffer(Request $request, $listingId)
+    {
+        $listing = Listing::where('user_id', Auth::id())
+            ->where('id', $listingId)
+            ->first();
+
+        if (!$listing) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Annonce non trouvée ou non autorisée'
+            ], 404);
+        }
+
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'required|string',
+            'discount_percentage' => 'required|numeric|min:0|max:100',
+            'start_date' => 'required|date|after_or_equal:today',
+            'end_date' => 'required|date|after:start_date',
+        ]);
+
+        $offer = SpecialOffer::create([
+            'listing_id' => $listingId,
+            'title' => $request->title,
+            'description' => $request->description,
+            'discount_percentage' => $request->discount_percentage,
+            'start_date' => $request->start_date,
+            'end_date' => $request->end_date,
+            'is_active' => true
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Offre spéciale ajoutée avec succès',
+            'data' => $offer
+        ], 201);
+    }
+
+    /**
+     * Supprimer une offre spéciale
+     */
+    public function deleteSpecialOffer($id)
+    {
+        $offer = SpecialOffer::whereHas('listing', function($query) {
+            $query->where('user_id', Auth::id());
+        })->find($id);
+
+        if (!$offer) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Offre non trouvée ou non autorisée'
+            ], 404);
+        }
+
+        $offer->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Offre spéciale supprimée'
         ]);
     }
 

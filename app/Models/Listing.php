@@ -47,4 +47,9 @@ class Listing extends Model
     {
         return $this->hasMany(Booking::class);
     }
+
+    public function specialOffers()
+    {
+        return $this->hasMany(SpecialOffer::class);
+    }
 }

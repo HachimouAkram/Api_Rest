@@ -164,7 +164,8 @@ class PublicController extends Controller
      */
     public function specialOffer($id)
     {
-        $offer = SpecialOffer::where('is_active', true)
+        $offer = SpecialOffer::with('listing.photos')
+            ->where('is_active', true)
             ->where('id', $id)
             ->first();
 
@@ -186,7 +187,8 @@ class PublicController extends Controller
      */
     public function specialOffers()
     {
-        $offers = SpecialOffer::where('is_active', true)
+        $offers = SpecialOffer::with('listing.photos')
+            ->where('is_active', true)
             ->where('start_date', '<=', now())
             ->where('end_date', '>=', now())
             ->orderBy('created_at', 'desc')
