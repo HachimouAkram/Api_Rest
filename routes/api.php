@@ -127,9 +127,21 @@ Route::prefix('admin')
 
     // Annonces
     Route::get('/listings', [AdminController::class, 'listings']);
+    Route::get('/listings/{id}', [AdminController::class, 'showListing']);
     Route::patch('/listings/{id}/toggle-status', [AdminController::class, 'toggleListingStatus']);
     Route::patch('/listings/{id}/approve', [AdminController::class, 'approveListing']);
     Route::delete('/listings/{id}', [AdminController::class, 'deleteListing']);
+
+    // Avis
+    Route::get('/reviews', [AdminController::class, 'reviews']);
+    Route::get('/reviews/{id}', [AdminController::class, 'showReview']);
+    Route::delete('/reviews/{id}', [AdminController::class, 'deleteReview']);
+
+    // Offres spéciales
+    Route::get('/special-offers', [AdminController::class, 'specialOffers']);
+    Route::get('/special-offers/{id}', [AdminController::class, 'showSpecialOffer']);
+    Route::patch('/special-offers/{id}/toggle', [AdminController::class, 'toggleSpecialOffer']);
+    Route::delete('/special-offers/{id}', [AdminController::class, 'deleteSpecialOffer']);
 
     // Réservations
     Route::get('/bookings', [AdminController::class, 'bookings']);

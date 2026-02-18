@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Listing;
 use App\Models\Booking;
+use App\Models\Review;
+use App\Models\SpecialOffer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -353,6 +355,231 @@ class AdminController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Erreur lors de la récupération des réservations',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Détails d'une annonce
+     */
+    public function showListing($id)
+    {
+        try {
+            $listing = Listing::with(['user', 'photos', 'availabilities', 'reviews', 'specialOffers'])
+                ->find($id);
+
+            if (!$listing) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Annonce non trouvée'
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => $listing
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la récupération de l\'annonce',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Liste de tous les avis
+     */
+    public function reviews(Request $request)
+    {
+        try {
+            $perPage = $request->get('per_page', 15);
+            $reviews = Review::with(['user', 'listing'])
+                ->orderBy('created_at', 'desc')
+                ->paginate($perPage);
+
+            return response()->json([
+                'success' => true,
+                'data' => $reviews
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la récupération des avis',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Détails d'un avis
+     */
+    public function showReview($id)
+    {
+        try {
+            $review = Review::with(['user', 'listing'])->find($id);
+
+            if (!$review) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Avis non trouvé'
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => $review
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la récupération de l\'avis',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Supprimer un avis
+     */
+    public function deleteReview($id)
+    {
+        try {
+            $review = Review::find($id);
+
+            if (!$review) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Avis non trouvé'
+                ], 404);
+            }
+
+            $review->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Avis supprimé'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la suppression de l\'avis',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Liste de toutes les offres spéciales
+     */
+    public function specialOffers(Request $request)
+    {
+        try {
+            $perPage = $request->get('per_page', 15);
+            $offers = SpecialOffer::with(['listing', 'listing.user'])
+                ->orderBy('created_at', 'desc')
+                ->paginate($perPage);
+
+            return response()->json([
+                'success' => true,
+                'data' => $offers
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la récupération des offres spéciales',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Détails d'une offre spéciale
+     */
+    public function showSpecialOffer($id)
+    {
+        try {
+            $offer = SpecialOffer::with(['listing', 'listing.user'])->find($id);
+
+            if (!$offer) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Offre spéciale non trouvée'
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => $offer
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la récupération de l\'offre spéciale',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Activer/Désactiver une offre spéciale
+     */
+    public function toggleSpecialOffer($id)
+    {
+        try {
+            $offer = SpecialOffer::find($id);
+
+            if (!$offer) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Offre spéciale non trouvée'
+                ], 404);
+            }
+
+            $offer->is_active = !$offer->is_active;
+            $offer->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => $offer->is_active ? 'Offre spéciale activée' : 'Offre spéciale désactivée',
+                'data' => $offer
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la modification de l\'offre spéciale',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Supprimer une offre spéciale
+     */
+    public function deleteSpecialOffer($id)
+    {
+        try {
+            $offer = SpecialOffer::find($id);
+
+            if (!$offer) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Offre spéciale non trouvée'
+                ], 404);
+            }
+
+            $offer->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Offre spéciale supprimée'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la suppression de l\'offre spéciale',
                 'error' => $e->getMessage()
             ], 500);
         }
